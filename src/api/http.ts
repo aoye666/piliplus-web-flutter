@@ -2,27 +2,34 @@ import axios from 'axios'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { logger } from '@/utils/logger'
 
-// ============ 代理配置 ============
-// 开发环境走 vite proxy，生产环境走公共 CORS 代理
+// ============ 环境配置 ============
 const isDev = import.meta.env.DEV
 
-// 公共 CORS 代理（备用）
-const CORS_PROXY = 'https://api.allorigins.win/raw?url='
-
 // B 站 API 基础配置
-const BASE_URLS = {
-  // 开发环境直接用 vite proxy (相对路径)
-  api: isDev ? '/bili-api' : 'https://api.bilibili.com',
-  app: isDev ? '/bili-app' : 'https://app.bilibili.com',
-  live: isDev ? '/bili-live' : 'https://api.live.bilibili.com',
-  passport: isDev ? '/bili-passport' : 'https://passport.bilibili.com',
-  message: isDev ? '/bili-message' : 'https://message.bilibili.com',
-  dynamic: isDev ? '/bili-dynamic' : 'https://t.bilibili.com',
-  space: isDev ? '/bili-space' : 'https://space.bilibili.com',
+const BILI_APIS = {
+  api: 'https://api.bilibili.com',
+  app: 'https://app.bilibili.com',
+  live: 'https://api.live.bilibili.com',
+  passport: 'https://passport.bilibili.com',
+  message: 'https://message.bilibili.com',
+  dynamic: 'https://t.bilibili.com',
+  space: 'https://space.bilibili.com',
+}
+
+// 获取实际的基础 URL
+function getBaseUrl(name: string): string {
+  if (isDev) {
+    // 开发环境：走 vite proxy
+    return `/bili-${name}`
+  }
+  // 生产环境：走 Vercel Serverless 代理
+  return '/api/proxy'
 }
 
 // 创建 axios 实例
-const createInstance = (baseURL: string, name: string): AxiosInstance => {
+const createInstance = (name: string): AxiosInstance => {
+  const baseURL = getBaseUrl(name)
+  
   const instance = axios.create({
     baseURL,
     timeout: 15000,
@@ -45,21 +52,36 @@ const createInstance = (baseURL: string, name: string): AxiosInstance => {
     const params = config.params || config.data
     logger.request(config.method?.toUpperCase() || 'GET', `${name}${url}`, params)
 
-    // 标记请求开始时间 (使用扩展属性)
+    // 标记请求开始时间
     ;(config as any)._startTime = Date.now()
+    ;(config as any)._apiName = name
+
+    // 生产环境：将完整 URL 作为参数传递给代理
+    if (!isDev) {
+      const fullUrl = `${BILI_APIS[name as keyof typeof BILI_APIS]}${url}`
+      
+      if (config.method === 'get' || !config.method) {
+        // GET 请求：URL 参数
+        config.params = { url: fullUrl }
+      } else {
+        // POST 请求：保持原有参数，URL 作为查询参数
+        config.params = { url: fullUrl }
+      }
+    }
 
     return config
   })
 
-  // 响应拦截 - 日志 + CORS 代理重试
+  // 响应拦截 - 日志
   instance.interceptors.response.use(
     (response) => {
       const startTime = (response.config as any)._startTime || Date.now()
       const duration = Date.now() - startTime
       const url = response.config.url || ''
+      const apiName = (response.config as any)._apiName || name
       
       logger.response(
-        `${name}${url}`,
+        `${apiName}${url}`,
         response.status,
         response.data,
         duration
@@ -67,32 +89,10 @@ const createInstance = (baseURL: string, name: string): AxiosInstance => {
 
       return response
     },
-    async (error) => {
+    (error) => {
       const url = error.config?.url || ''
-      
-      // 如果是 CORS 错误且不是开发环境，尝试用 CORS 代理
-      if (!isDev && error.message?.includes('Network Error')) {
-        logger.warn(`CORS 错误，尝试代理: ${name}${url}`)
-        
-        try {
-          const originalUrl = `${BASE_URLS[name as keyof typeof BASE_URLS] || BASE_URLS.api}${url}`
-          const proxyUrl = `${CORS_PROXY}${encodeURIComponent(originalUrl)}`
-          
-          const proxyResponse = await axios.get(proxyUrl, {
-            timeout: 20000,
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            },
-          })
-          
-          logger.info(`代理请求成功: ${name}${url}`)
-          return proxyResponse
-        } catch (proxyError) {
-          logger.error(`代理也失败了: ${name}${url}`, proxyError)
-        }
-      }
-      
-      logger.error(`${name}${url}`, error)
+      const apiName = (error.config as any)._apiName || name
+      logger.error(`${apiName}${url}`, error)
       return Promise.reject(error)
     }
   )
@@ -101,12 +101,12 @@ const createInstance = (baseURL: string, name: string): AxiosInstance => {
 }
 
 // 导出各模块实例
-export const api = createInstance(BASE_URLS.api, 'API')
-export const appApi = createInstance(BASE_URLS.app, 'APP')
-export const liveApi = createInstance(BASE_URLS.live, 'LIVE')
-export const passportApi = createInstance(BASE_URLS.passport, 'PASSPORT')
-export const messageApi = createInstance(BASE_URLS.message, 'MSG')
-export const spaceApi = createInstance(BASE_URLS.space, 'SPACE')
+export const api = createInstance('api')
+export const appApi = createInstance('app')
+export const liveApi = createInstance('live')
+export const passportApi = createInstance('passport')
+export const messageApi = createInstance('message')
+export const spaceApi = createInstance('space')
 
 // 通用请求方法
 export async function request<T>(config: AxiosRequestConfig): Promise<T> {
@@ -114,4 +114,4 @@ export async function request<T>(config: AxiosRequestConfig): Promise<T> {
   return res.data
 }
 
-export { BASE_URLS, isDev }
+export { BILI_APIS, isDev }
