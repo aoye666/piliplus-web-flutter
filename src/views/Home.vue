@@ -85,7 +85,23 @@
       <div class="loading-spinner"></div>
       <span class="loading-text">加载中...</span>
     </div>
-    <div v-if="!loading && !videoList.length" class="empty-container">
+    
+    <!-- 错误状态 -->
+    <div v-if="error && !loading" class="error-container glass">
+      <div class="error-icon">❌</div>
+      <div class="error-text">{{ error }}</div>
+      <button class="retry-btn" @click="loadVideo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 4v6h-6M1 20v-6h6"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        重试
+      </button>
+      <div class="error-hint">💡 提示：需要在本地开发环境运行，或配置 CORS 代理</div>
+    </div>
+    
+    <!-- 空状态 -->
+    <div v-if="!loading && !error && !videoList.length" class="empty-container">
       <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
       </svg>
@@ -110,6 +126,7 @@ const tabs = [
 const activeTab = ref('recommend')
 const videoList = ref<VideoItem[]>([])
 const loading = ref(false)
+const error = ref('')
 const page = ref(1)
 
 function formatDuration(seconds: number): string {
@@ -120,6 +137,8 @@ function formatDuration(seconds: number): string {
 
 async function loadVideo() {
   loading.value = true
+  error.value = ''
+  
   try {
     if (activeTab.value === 'recommend') {
       const res = await getRecommendList({ ps: 20, fresh_idx: page.value })
@@ -129,8 +148,17 @@ async function loadVideo() {
       const res = await getPopularList({ ps: 20, pn: page.value })
       videoList.value = res.data?.list || []
     }
-  } catch (e) {
+  } catch (e: any) {
     console.error('加载失败', e)
+    
+    // 提取错误信息
+    if (e.message?.includes('Network Error')) {
+      error.value = '网络错误 - 跨域请求被拦截'
+    } else if (e.response?.data?.message) {
+      error.value = `API 错误: ${e.response.data.message}`
+    } else {
+      error.value = e.message || '未知错误'
+    }
   } finally {
     loading.value = false
   }
@@ -478,5 +506,61 @@ onMounted(loadVideo)
 .empty-text {
   font-size: 16px;
   color: rgba(255, 255, 255, 0.4);
+}
+
+/* 错误状态 */
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 24px;
+  margin: 20px 0;
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 48px;
+}
+
+.error-text {
+  font-size: 16px;
+  color: #ff4d4f;
+  font-weight: 500;
+}
+
+.retry-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 24px;
+  border: none;
+  background: linear-gradient(135deg, #fb7299, #00a1d6);
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.retry-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 24px rgba(251, 114, 153, 0.4);
+}
+
+.retry-btn:active {
+  transform: scale(0.95);
+}
+
+.retry-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.error-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
 }
 </style>
