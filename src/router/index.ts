@@ -45,6 +45,12 @@ const router = createRouter({
       component: () => import('@/views/Player.vue'),
       meta: { title: '播放器' },
     },
+    {
+      path: '/logs',
+      name: 'logs',
+      component: () => import('@/views/Logs.vue'),
+      meta: { title: '调试日志' },
+    },
   ],
 })
 
