@@ -14,6 +14,7 @@ const BILI_APIS = {
   message: 'https://message.bilibili.com',
   dynamic: 'https://t.bilibili.com',
   space: 'https://space.bilibili.com',
+  search: 'https://s.search.bilibili.com',
 }
 
 // 获取实际的基础 URL
@@ -44,7 +45,7 @@ const createInstance = (name: string): AxiosInstance => {
   instance.interceptors.request.use((config) => {
     const cookie = localStorage.getItem('bili_cookie')
     if (cookie) {
-      config.headers['Cookie'] = cookie
+      config.headers['X-Bili-Cookie'] = cookie
     }
 
     // 记录请求日志
@@ -107,6 +108,7 @@ export const liveApi = createInstance('live')
 export const passportApi = createInstance('passport')
 export const messageApi = createInstance('message')
 export const spaceApi = createInstance('space')
+export const searchApi = createInstance('search')
 
 // 通用请求方法
 export async function request<T>(config: AxiosRequestConfig): Promise<T> {

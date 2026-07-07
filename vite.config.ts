@@ -9,6 +9,16 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vue-vendor': ['vue', 'vue-router', 'pinia'],
+          'axios': ['axios'],
+        },
+      },
+    },
+  },
   server: {
     port: 3000,
     proxy: {
@@ -47,6 +57,11 @@ export default defineConfig({
         target: 'https://space.bilibili.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/bili-space/, ''),
+      },
+      '/bili-search': {
+        target: 'https://s.search.bilibili.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/bili-search/, ''),
       },
     },
   },

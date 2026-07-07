@@ -168,20 +168,22 @@ async function initPlayer() {
 }
 
 function loadScript(src: string): Promise<void> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const s = document.createElement('script')
     s.src = src
     s.onload = () => resolve()
+    s.onerror = () => reject(new Error(`Failed to load script: ${src}`))
     document.head.appendChild(s)
   })
 }
 
 function loadCSS(href: string): Promise<void> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const l = document.createElement('link')
     l.rel = 'stylesheet'
     l.href = href
     l.onload = () => resolve()
+    l.onerror = () => reject(new Error(`Failed to load CSS: ${href}`))
     document.head.appendChild(l)
   })
 }

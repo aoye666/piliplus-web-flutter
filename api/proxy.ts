@@ -17,6 +17,7 @@ const ALLOWED_HOSTS = [
   'message.bilibili.com',
   't.bilibili.com',
   'space.bilibili.com',
+  's.search.bilibili.com',
 ]
 
 // 默认请求头
@@ -61,8 +62,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 构建请求头
     const headers: Record<string, string> = { ...DEFAULT_HEADERS }
     
-    // 透传 Cookie
-    const cookie = req.headers.cookie
+    // 透传 Cookie（通过自定义 header）
+    const cookie = req.headers['x-bili-cookie']
     if (cookie) {
       headers['Cookie'] = cookie
     }

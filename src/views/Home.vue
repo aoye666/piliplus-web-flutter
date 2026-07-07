@@ -113,7 +113,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { getRecommendList, getPopularList } from '@/api/video'
-import { formatCount } from '@/types/video'
+import { formatCount, formatDuration } from '@/types/video'
 import type { VideoItem } from '@/types/video'
 
 const tabs = [
@@ -128,12 +128,6 @@ const videoList = ref<VideoItem[]>([])
 const loading = ref(false)
 const error = ref('')
 const page = ref(1)
-
-function formatDuration(seconds: number): string {
-  const min = Math.floor(seconds / 60)
-  const sec = seconds % 60
-  return `${min}:${sec.toString().padStart(2, '0')}`
-}
 
 async function loadVideo() {
   loading.value = true

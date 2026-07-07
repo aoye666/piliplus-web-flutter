@@ -10,11 +10,6 @@ export function getNavStat() {
   return api.get('/x/web-interface/nav/stat')
 }
 
-/** 获取用户信息（空间页） */
-export function getUserInfo(params: { mid: number }) {
-  return api.get('https://space.bilibili.com/x/space/acc/info', { params })
-}
-
 /** 用户关注/粉丝数 */
 export function getUserStat(params: { mid: number }) {
   return api.get('/x/relation/stat', { params })

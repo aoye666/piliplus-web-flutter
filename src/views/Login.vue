@@ -113,10 +113,17 @@ function startPoll(qrcodeKey: string) {
       const res = await passportApi.get('/x/passport-login/web/qrcode/poll', { params: { qrcode_key: qrcodeKey } })
       const code = res.data?.data?.code
       if (code === 0) {
-        // 扫码成功，设置 cookie
-        const cookie = res.data?.data?.url?.match(/SESSDATA=([^;]+)/)?.[1]
-        if (cookie) {
-          userStore.setCookie(`SESSDATA=${cookie}`)
+        // 扫码成功，提取完整 cookie
+        const urlStr = res.data?.data?.url || ''
+        const cookies: string[] = []
+        const sessdata = urlStr.match(/SESSDATA=([^;&]+)/)?.[1]
+        const biliJct = urlStr.match(/bili_jct=([^;&]+)/)?.[1]
+        const dedeUserId = urlStr.match(/DedeUserID=([^;&]+)/)?.[1]
+        if (sessdata) cookies.push(`SESSDATA=${sessdata}`)
+        if (biliJct) cookies.push(`bili_jct=${biliJct}`)
+        if (dedeUserId) cookies.push(`DedeUserID=${dedeUserId}`)
+        if (cookies.length) {
+          userStore.setCookie(cookies.join('; '))
         }
         stopPoll()
         router.push('/')

@@ -1,13 +1,13 @@
-import { api } from './http'
+import { api, searchApi } from './http'
 
-/** 搜索建议 */
+/** 搜索建议（s.search.bilibili.com） */
 export function getSearchSuggest(params: { term: string }) {
-  return api.get('https://s.search.bilibili.com/main/suggest', { params })
+  return searchApi.get('/main/suggest', { params })
 }
 
-/** 热搜榜 */
+/** 热搜榜（s.search.bilibili.com） */
 export function getHotSearch() {
-  return api.get('https://s.search.bilibili.com/main/hotword')
+  return searchApi.get('/main/hotword')
 }
 
 /** 默认搜索词 */
